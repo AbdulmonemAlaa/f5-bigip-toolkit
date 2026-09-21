@@ -1,0 +1,10 @@
+# Normalise everything to LF in the repository and in the working tree.
+# This overrides a machine-level core.autocrlf=true, so the shell scripts
+# stay LF even when the repo is cloned on Windows.
+* text=auto eol=lf
+
+*.sh  text eol=lf
+*.py  text eol=lf
+*.md  text eol=lf
+
+*.xlsx binary
