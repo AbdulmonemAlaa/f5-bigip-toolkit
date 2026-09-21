@@ -1,0 +1,55 @@
+#===============================================================================
+# f5_ucs_backup.conf
+#
+# Settings for f5_ucs_backup.sh. This is the ONLY file you edit per site.
+#
+#     /shared/scripts/f5_ucs_backup.conf     chmod 600, root:root
+#
+# Keeping settings here means a script update can never quietly reset your
+# destination. Confirm each value against the target server before the first
+# scheduled run.
+#
+# Author: Eng. Abdulmonem Alaa Aldeen
+#===============================================================================
+
+#--- how we authenticate -------------------------------------------------------
+# "key"      Windows OpenSSH, SolarWinds Serv-U, Bitvise, Titan, Linux OpenSSH
+# "password" SolarWinds free SFTP/SCP Server (banner: WeOnlyDo) - it offers no
+#            public-key auth at all, so password is forced there
+AUTH_METHOD="password"
+
+#--- how we move the file ------------------------------------------------------
+# "sftp" unless sftp is disabled on the server
+TRANSFER="sftp"
+
+#--- where it goes -------------------------------------------------------------
+REMOTE_USER="f5backup"
+REMOTE_HOST="192.0.2.10"
+REMOTE_PORT="22"
+
+# RELATIVE to the server's own root, never a C:\ path.
+# Take this from `pwd` inside an interactive sftp session.
+# SolarWinds reports "/".
+REMOTE_BASE="/"
+
+# "yes" gives every device its own subfolder, named after its hostname.
+# Set "no" if the server refuses directory creation.
+REMOTE_MKDIR="yes"
+
+# "yes" reads the size back after upload and compares it. Turn off only if the
+# server refuses listings - and record that as an accepted risk.
+REMOTE_VERIFY="yes"
+
+#--- local side ----------------------------------------------------------------
+LOCAL_DIR="/var/local/ucs"     # leave alone: the GUI reads only this path
+LOCAL_KEEP_DAYS="7"
+
+#--- credentials ---------------------------------------------------------------
+SSH_KEY="/root/.ssh/id_rsa"
+CRED_FILE="/shared/scripts/.f5backup.cred"
+
+#--- timing --------------------------------------------------------------------
+# Seconds expect waits at each prompt in password mode. Raise it if the archive
+# is large or the link is slow; a transfer that outlives this is failed as a
+# timeout rather than left hanging.
+EXPECT_TIMEOUT="300"

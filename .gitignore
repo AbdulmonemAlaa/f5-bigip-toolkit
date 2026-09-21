@@ -14,3 +14,10 @@ vs_list*.txt
 
 # Output folder of split_attacks_to_xlsx.py
 out_attacks/
+
+# Backup tool: the live config holds a real hostname and paths, the cred file
+# holds the SFTP password, and the archives hold the whole device config.
+# Only f5_ucs_backup.conf.example belongs in the repo.
+f5_ucs_backup.conf
+.f5backup.cred
+*.ucs

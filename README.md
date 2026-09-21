@@ -2,10 +2,12 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Shell and Python helpers for two recurring F5 BIG-IP tasks:
+Shell and Python helpers for three recurring F5 BIG-IP tasks:
 
 - **Migrating LTM virtual servers** between boxes, tenants or partitions — capturing the
   existing state, generating the teardown and rebuild commands, and comparing before/after.
+- **Backing up UCS archives** — a scheduled save, an SFTP/SCP transfer to a backup server, a
+  verified arrival, and local retention.
 - **Tuning AFM DoS thresholds** — sampling the device DoS configuration over a full day and
   turning that log into one spreadsheet per attack vector.
 
@@ -19,13 +21,16 @@ wherever you collect the logs.
 | `build_cleanup_commands.sh` | `migration/` | Read a list of virtual servers and generate `delete.bash` (old box), `create.bash` (new box), `vlan_list.csv` and `vip_asm_policies.csv` |
 | `check_vs_ssl_profiles.sh` | `migration/` | CSV report of the client-SSL and server-SSL profiles on each virtual server, with cert, key, chain, CA file, peer-cert-mode, server name and SNI default |
 | `check_vs_stats.sh` | `migration/` | CSV of live availability, state and traffic counters for each virtual server, its default pool and every pool member |
+| `f5_ucs_backup.sh` | `backup/` | Scheduled UCS backup: save the archive, transfer it to an SFTP/SCP server, verify the exact byte size on arrival, prune old local copies |
 | `f5_dos_monitor.sh` | `afm-dos-tuning/` | Run `tmsh show security dos device-config` every 10 minutes, logging into per-day folders and rolling over at midnight |
 | `split_attacks_to_xlsx.py` | `afm-dos-tuning/` | Split that log into one `.xlsx` per DoS attack vector, plus a `summary.csv` |
 
 ## Requirements
 
-- F5 BIG-IP with shell (bash) access and `tmsh` on `PATH` — the four shell scripts run on the
+- F5 BIG-IP with shell (bash) access and `tmsh` on `PATH` — the five shell scripts run on the
   BIG-IP itself.
+- `/usr/bin/expect`, only for `f5_ucs_backup.sh` in password mode. Key-based auth does not
+  need it.
 - Python 3.8+ for `split_attacks_to_xlsx.py`, with:
 
   ```bash
@@ -64,6 +69,7 @@ nodes on the target box.
 Each folder has its own README with per-script usage and a worked example:
 
 - [`migration/README.md`](migration/README.md)
+- [`backup/README.md`](backup/README.md)
 - [`afm-dos-tuning/README.md`](afm-dos-tuning/README.md)
 
 ## Notes
@@ -73,6 +79,9 @@ Each folder has its own README with per-script usage and a worked example:
 - Generated output (`*.csv`, `*.xlsx`, `delete.bash`, `create.bash`, `vs_list*.txt`,
   `out_attacks/`) is git-ignored on purpose — those files contain real data once you run the
   tools.
+- The backup tool's live config (`f5_ucs_backup.conf`), its credential file (`.f5backup.cred`)
+  and the archives themselves (`*.ucs`) are git-ignored for the same reason. Only
+  `f5_ucs_backup.conf.example` is committed.
 - `f5_dos_monitor.sh` writes its logs under `/var/tmp`, which is **not preserved across a BIG-IP
   upgrade**. Copy the day's folder off the box once you have finished collecting, before doing
   anything to the device.
