@@ -1,5 +1,7 @@
 # f5-bigip-toolkit
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Shell and Python helpers for two recurring F5 BIG-IP tasks:
 
 - **Migrating LTM virtual servers** between boxes, tenants or partitions — capturing the
