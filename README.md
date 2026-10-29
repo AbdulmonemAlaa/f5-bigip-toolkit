@@ -2,17 +2,20 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Shell and Python helpers for three recurring F5 BIG-IP tasks:
+Shell and Python helpers for four recurring F5 BIG-IP tasks:
 
 - **Migrating LTM virtual servers** between boxes, tenants or partitions — capturing the
   existing state, generating the teardown and rebuild commands, and comparing before/after.
+- **Moving applications between partitions** on the same box — finding every object a virtual
+  server depends on, what blocks the move, and generating create / delete / rollback scripts,
+  across route domains if needed.
 - **Backing up UCS archives** — a scheduled save, an SFTP/SCP transfer to a backup server, a
   verified arrival, and local retention.
 - **Tuning AFM DoS thresholds** — sampling the device DoS configuration over a full day and
   turning that log into one spreadsheet per attack vector.
 
-Everything runs directly on the BIG-IP shell using `tmsh`, except the Python tool, which runs
-wherever you collect the logs.
+Everything runs directly on the BIG-IP shell using `tmsh` or the system `python3`, except
+`split_attacks_to_xlsx.py`, which runs wherever you collect the logs.
 
 ## Tools
 
@@ -21,6 +24,9 @@ wherever you collect the logs.
 | `build_cleanup_commands.sh` | `migration/` | Read a list of virtual servers and generate `delete.bash` (old box), `create.bash` (new box), `vlan_list.csv` and `vip_asm_policies.csv` |
 | `check_vs_ssl_profiles.sh` | `migration/` | CSV report of the client-SSL and server-SSL profiles on each virtual server, with cert, key, chain, CA file, peer-cert-mode, server name and SNI default |
 | `check_vs_stats.sh` | `migration/` | CSV of live availability, state and traffic counters for each virtual server, its default pool and every pool member |
+| `f5_partition_move.py` | `partition-move/` | `discover`: walk everything the virtual servers use and mark each object MOVE / SHARED / CONFLICT / BLOCKER. `generate`: write a job folder with precheck, create, route, verify, delete and rollback scripts |
+| `vlan_scope.py` | `partition-move/` | Everything that belongs to one server VLAN: self IPs, subnets, nodes, pools, virtual servers and the VLANs each listens on |
+| `rd_check.py` | `partition-move/` | Route domains, connected subnets and static routes, and how a target route domain would reach each address |
 | `f5_ucs_backup.sh` | `backup/` | Scheduled UCS backup: save the archive, transfer it to an SFTP/SCP server, verify the exact byte size on arrival, prune old local copies |
 | `f5_dos_monitor.sh` | `afm-dos-tuning/` | Run `tmsh show security dos device-config` every 10 minutes, logging into per-day folders and rolling over at midnight |
 | `split_attacks_to_xlsx.py` | `afm-dos-tuning/` | Split that log into one `.xlsx` per DoS attack vector, plus a `summary.csv` |
@@ -29,6 +35,8 @@ wherever you collect the logs.
 
 - F5 BIG-IP with shell (bash) access and `tmsh` on `PATH` — the five shell scripts run on the
   BIG-IP itself.
+- The `partition-move/` scripts also run on the BIG-IP, with its own `python3` and the standard
+  library only — nothing to install.
 - `/usr/bin/expect`, only for `f5_ucs_backup.sh` in password mode. Key-based auth does not
   need it.
 - Python 3.8+ for `split_attacks_to_xlsx.py`, with:
@@ -38,8 +46,9 @@ wherever you collect the logs.
   ```
 
 The scripts are read-only against the BIG-IP: they collect configuration and statistics and write
-files to the current directory. The only script that produces changes is
-`build_cleanup_commands.sh`, and even then it *writes command files* rather than applying them.
+files to the current directory. The only scripts that produce changes are
+`build_cleanup_commands.sh` and `f5_partition_move.py generate`, and even then they *write
+command files* rather than applying them.
 
 ## ⚠️ Review `delete.bash` before you run it
 
@@ -62,13 +71,16 @@ Before running it:
 4. Take a UCS backup first.
 
 The same care applies to `create.bash`, which enables/disables virtual servers, pool members and
-nodes on the target box.
+nodes on the target box, and to the job folder written by `f5_partition_move.py generate` — its
+`30_delete_<partition>.sh` removes the original objects. See
+[`partition-move/README.md`](partition-move/README.md#run-order) for the run order.
 
 ## Usage
 
 Each folder has its own README with per-script usage and a worked example:
 
 - [`migration/README.md`](migration/README.md)
+- [`partition-move/README.md`](partition-move/README.md)
 - [`backup/README.md`](backup/README.md)
 - [`afm-dos-tuning/README.md`](afm-dos-tuning/README.md)
 
@@ -77,8 +89,8 @@ Each folder has its own README with per-script usage and a worked example:
 - No configuration, host name, address or object name from any real environment is included.
   Every example in this repository is invented.
 - Generated output (`*.csv`, `*.xlsx`, `delete.bash`, `create.bash`, `vs_list*.txt`,
-  `out_attacks/`) is git-ignored on purpose — those files contain real data once you run the
-  tools.
+  `out_attacks/`, `jobs/`, `*.scf`, `*_discovery.json`) is git-ignored on purpose — those files
+  contain real data once you run the tools.
 - The backup tool's live config (`f5_ucs_backup.conf`), its credential file (`.f5backup.cred`)
   and the archives themselves (`*.ucs`) are git-ignored for the same reason. Only
   `f5_ucs_backup.conf.example` is committed.
